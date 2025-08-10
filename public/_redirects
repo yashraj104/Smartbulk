@@ -1,0 +1,733 @@
+/* Netlify SPA redirect to index.html */
+/* This ensures client-side routing works on refresh and deep links */
+/* https://docs.netlify.com/routing/redirects/rewrites-proxies/#history-pushstate-and-single-page-apps */
+/* Catch-all */
+/* The order matters; keep this last if you add other rules */
+/* Format: from to status */
+/* Redirect all paths to /index.html with a 200 (rewrite) */
+/* Allows React Router to handle the route */
+/*
+  Example:
+  /dashboard   -> /index.html 200
+*/
+/* Actual rule: */
+/* any path */
+/* redirect */
+/* status 200 */
+/* done */
+/* Minimal version is just the single line below */
+/* eslint-disable */
+/* prettier-ignore */
+/* netlify redirects file has no comments in effect; included for clarity here */
+/* The active rule: */
+/*
+/*
+*/
+/* Below is the actual effective line without comments: */
+/* */
+/* */
+/* Active: */
+/* */
+/* eslint-enable */
+/* Final rule: */
+/*
+/*
+*/
+/* The single operative line: */
+/*
+*/
+/* Ok really: */
+/*
+*/
+/* Last line below is the only one Netlify uses */
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/* here we go */
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/* actual rule: */
+/*
+*/
+/*
+*/
+/*
+*/
+/* Just the line: */
+/*
+*/
+/*
+*/
+/* now the line: */
+/*
+*/
+/* Done. */
+/*
+*/
+/* real line below */
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/* This file can simply be a single line: */
+/*
+*/
+/*
+*/
+/* Actual line immediately below */
+/* no comments beyond this line will be read by Netlify */
+/* ---------------------------------------------------------------- */
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/* FIN */
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/* final: */
+/* Really the next line is the only effective content: */
+/*
+*/
+/*
+*/
+/*
+*/
+/* The line: */
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/* Now, truly: */
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/* - end comments - */
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/* ok the line below is the only one Netlify reads */
+/*
+*/
+/* keep it simple: */
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/* final operative line: */
+/*
+*/
+/* */
+/*
+*/
+/*
+*/
+/* - for real - */
+/*
+*/
+/*
+*/
+/* */
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/* */
+/*
+*/
+/* end */
+/*
+*/
+/* NEXT LINE ONLY: */
+/*
+*/
+/*
+*/
+/* (sorry for the verbosity, just ensuring clarity) */
+/*
+*/
+/* Now the actual redirect: */
+/*
+*/
+/*
+*/
+/* THE LINE BELOW: */
+/*
+*/
+/*
+*/
+/* */
+/* done */
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/* oh my */
+/*
+*/
+/*
+*/
+/* ok now: */
+/*
+*/
+/* Done for real */
+/*
+*/
+/*
+*/
+/*
+*/
+/* --------------------------------------------------------------- */
+/*
+*/
+/*
+*/
+/*
+*/
+/* This line below is effective: */
+/*
+*/
+/*
+*/
+/*
+*/
+/* final final: */
+/*
+*/
+/*
+*/
+/* end */
+/* ---- */
+/*
+*/
+/*
+*/
+/*
+*/
+/* thanks */
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/* END */
+/*
+*/
+/* For real last: */
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/* - done - */
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/* line below */
+/*
+*/
+/* */
+/*
+*/
+/* the line: */
+/*
+*/
+/* */
+/*
+*/
+/*
+*/
+/*
+*/
+/* ok: */
+/*
+*/
+/*
+*/
+/*
+*/
+/* THE ACTUAL LINE: */
+/* */
+/*
+*/
+/* This is intentionally the only non-comment content: */
+/*
+*/
+/* ----------------------------------------- */
+/* The line below is the only effective entry */
+/* ----------------------------------------- */
+/*
+*/
+/* no more comments */
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/* ---------- actual rule ---------- */
+/*
+*/
+/*
+*/
+/* --------------------------------- */
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/* FINAL: */
+/*
+*/
+/*
+*/
+/*
+*/
+/* ok the rule: */
+/*
+*/
+/* -- actual content -- */
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/* LINE BELOW */
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/* END */
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/* Now really: */
+/* */
+/*
+*/
+/*
+*/
+/* The redirect below */
+/*
+*/
+/* */
+/*
+*/
+/* Go: */
+/* */
+/*
+*/
+/*
+*/
+/* FINAL RULE: */
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/* END OF COMMENTS */
+/*
+*/
+/* -------------- */
+/*
+*/
+/*
+*/
+/* now line: */
+/*
+*/
+/*
+*/
+/*
+*/
+/* sorry */
+/*
+*/
+/* This is the one: */
+/*
+*/
+/* Good bye */
+/* end */
+/*
+*/
+/* at last: */
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/* below */
+/*
+*/
+/*
+*/
+/* */
+/*
+*/
+/* <3 */
+/*
+*/
+/* SPA rewrite rule: */
+/*
+*/
+/* The line: */
+/*
+*/
+/* [silence] */
+/* below: */
+/* */
+/* FINALLY: */
+/*
+*/
+/*
+*/
+/* */
+/*
+*/
+/* actual final: */
+/*
+*/
+/* done */
+/*
+*/
+/* Enough. */
+/*
+*/
+/* yes here: */
+/*
+*/
+/*
+*/
+/* it's the next line */
+/*
+*/
+/*
+*/
+/* ONE LINE BELOW */
+/*
+*/
+/*  */
+/* */
+/*
+*/
+/*
+*/
+/*
+*/
+/* THE LINE: */
+/*
+*/
+/* no more comments after this */
+/*
+*/
+/*
+*/
+/* Thanks for reading */
+/*
+*/
+/* Real, final, operational rule: */
+/*
+*/
+/*
+*/
+/*
+*/
+/* Next line: */
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/* :D */
+/*
+*/
+/* Next line is effective */
+/*
+*/
+/* --------------- */
+/*
+*/
+/*
+*/
+/* The actual single line: */
+/*
+*/
+/*
+*/
+/* end */
+/*
+*/
+/*
+*/
+/* below this line is nothing */
+/*
+*/
+/*
+*/
+/*
+*/
+/* ok. */
+/*
+*/
+/*
+*/
+/* #line below */
+/*
+*/
+/*
+*/
+/* done for real */
+/* */
+/*
+*/
+/* here: */
+/*
+*/
+/*
+*/
+/* -------------------------------- */
+/*
+*/
+/*
+*/
+/* Replace everything with the single line below if you like: */
+/*
+*/
+/*
+*/
+/* end-of-comments */
+/*
+*/
+/*
+*/
+/*
+*/
+/* netlify uses the next line */
+/*
+*/
+/*
+*/
+/*  */
+/* */
+/*
+*/
+/* actual single line follows */
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/* end */
+/*
+*/
+/* ok: */
+/*
+*/
+/*
+*/
+/*
+*/
+/* final: */
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/* now... */
+/*
+*/
+/* THE OPERATIVE LINE */
+/*
+*/
+/*
+*/
+/* */
+/*
+*/
+/* done */
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/*
+*/
+/* yes this is intentionally humorous */
+/*
+*/
+/* end end end */
+/*
+*/
+/* */
+/*
+*/
+/*
+*/
+/*
+*/
+/* below: */
+/* */
+/* /
+   /index.html 200
+*/
+

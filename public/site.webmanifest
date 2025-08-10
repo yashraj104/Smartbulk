@@ -1,0 +1,21 @@
+{
+  "name": "SmartBulk - AI Fitness Platform",
+  "short_name": "SmartBulk",
+  "description": "Transform your fitness journey with AI-powered workout plans, nutrition guidance, and community support",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "theme_color": "#ffc107",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "start_url": "/",
+  "scope": "/",
+  "categories": ["health", "fitness", "lifestyle"],
+  "lang": "en",
+  "dir": "ltr"
+}
