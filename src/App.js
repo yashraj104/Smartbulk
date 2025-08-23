@@ -1,6 +1,6 @@
 import React, { useState, useEffect, lazy, Suspense } from "react";
-import { Routes, Route, Link, NavLink } from "react-router-dom";
-import { Navbar, Nav, Container, Button } from "react-bootstrap";
+import { Routes, Route, Link, NavLink, useNavigate } from "react-router-dom";
+import { Navbar, Nav, Container, Button, Dropdown } from "react-bootstrap";
 import { motion } from "framer-motion";
 
 // Components (lazy-loaded)
@@ -19,12 +19,19 @@ const Settings = lazy(() => import("./components/Settings"));
 const NotFound = lazy(() => import("./components/NotFound"));
 const Contact = lazy(() => import("./components/Contact"));
 const About = lazy(() => import("./components/About"));
+const Login = lazy(() => import("./components/Auth/Login"));
+const Register = lazy(() => import("./components/Auth/Register"));
+const Dashboard = lazy(() => import("./components/Dashboard/Dashboard"));
+const Profile = lazy(() => import("./components/Profile"));
 import Footer from "./components/Footer";
 import ScrollToTop from "./components/ScrollToTop";
 import ErrorBoundary from "./components/ErrorBoundary";
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { Toaster } from 'react-hot-toast';
 
-function App() {
+function AppContent() {
   const [darkMode, setDarkMode] = useState(false);
+  const { currentUser, userProfile, logout } = useAuth();
 
   useEffect(() => {
     // Toggle a stable class for dark mode styling without wiping other body classes
@@ -41,8 +48,41 @@ function App() {
     }
   }, []);
 
+  const handleLogout = async () => {
+    try {
+      await logout();
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
+
   return (
     <>
+      <Toaster 
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+          },
+          success: {
+            duration: 3000,
+            iconTheme: {
+              primary: '#4CAF50',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            duration: 4000,
+            iconTheme: {
+              primary: '#f44336',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
       <ScrollToTop />
       {/* Professional Navigation */}
       <Navbar 
@@ -78,6 +118,39 @@ function App() {
               >
                 {darkMode ? "☀️" : "🌙"}
               </Button>
+              
+              {currentUser ? (
+                <Dropdown>
+                  <Dropdown.Toggle variant="outline-primary" id="user-dropdown" className="d-flex align-items-center gap-2">
+                    <span className="fw-semibold">{userProfile?.displayName || currentUser?.email}</span>
+                  </Dropdown.Toggle>
+                  <Dropdown.Menu>
+                    <Dropdown.Item as={Link} to="/dashboard">
+                      Dashboard
+                    </Dropdown.Item>
+                    <Dropdown.Item as={Link} to="/profile">
+                      Profile
+                    </Dropdown.Item>
+                    <Dropdown.Item as={Link} to="/settings">
+                      Settings
+                    </Dropdown.Item>
+                    <Dropdown.Divider />
+                    <Dropdown.Item onClick={handleLogout}>
+                      Logout
+                    </Dropdown.Item>
+                  </Dropdown.Menu>
+                </Dropdown>
+              ) : (
+                <>
+                  <Button as={Link} to="/login" variant="outline-primary" className="fw-semibold px-3">
+                    Sign In
+                  </Button>
+                  <Button as={Link} to="/register" variant="primary" className="fw-semibold px-3">
+                    Sign Up
+                  </Button>
+                </>
+              )}
+              
               <Button as={Link} to="/payment" variant="warning" className="fw-semibold px-3">
                 Upgrade Pro
               </Button>
@@ -98,6 +171,10 @@ function App() {
         <Container fluid className="px-3 px-md-4 py-4">
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/profile" element={<Profile />} />
             <Route path="/payment" element={<Payment />} />
             <Route path="/workout" element={<WorkoutPlanner />} />
             <Route path="/diet" element={<DietPlanner />} />
@@ -121,6 +198,14 @@ function App() {
       {/* Professional Footer */}
       <Footer />
     </>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 

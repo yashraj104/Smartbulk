@@ -1,16 +1,20 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Container, Row, Col, Card, Button, Form,
   Badge, Alert, InputGroup, Dropdown,
-  Modal, ListGroup, Spinner
+  Modal, ListGroup, Spinner, Toast
 } from "react-bootstrap";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FaRobot, FaUser, FaPaperPlane, FaMicrophone, FaStop,
   FaLightbulb, FaDumbbell, FaAppleAlt, FaHeart,
   FaChartLine, FaTrophy, FaQuestionCircle, FaCog,
-  FaBrain, FaComments, FaStar
+  FaBrain, FaComments, FaStar, FaTrash, FaHistory,
+  FaWifi, FaTimes, FaExclamationTriangle
 } from "react-icons/fa";
+import { useAuth } from '../contexts/AuthContext';
+import realtimeService from '../services/RealtimeService';
+import toast from 'react-hot-toast';
 
 function AIChatCoach() {
   const [messages, setMessages] = useState([]);
@@ -18,34 +22,51 @@ function AIChatCoach() {
   const [isTyping, setIsTyping] = useState(false);
   const [coachPersonality, setCoachPersonality] = useState("motivational");
   const [showSettings, setShowSettings] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState({ isConnected: false });
+  const [error, setError] = useState(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [conversationHistory, setConversationHistory] = useState([]);
 
   const messagesEndRef = useRef(null);
+  const { currentUser } = useAuth();
 
-  // AI responses for different categories
+  // AI responses for different categories with enhanced responses
   const aiResponses = {
     workout: [
-      "For your fitness level, I'd recommend starting with compound movements like squats, deadlifts, and bench press. Start with 3 sets of 8-12 reps.",
-      "Based on your goals, let's focus on progressive overload. Try increasing weight by 5-10% each week while maintaining proper form.",
-      "For muscle building, aim for 3-4 workouts per week with adequate rest between muscle groups."
+      "For your fitness level, I'd recommend starting with compound movements like squats, deadlifts, and bench press. Start with 3 sets of 8-12 reps with proper form.",
+      "Based on your goals, let's focus on progressive overload. Try increasing weight by 5-10% each week while maintaining proper form and technique.",
+      "For muscle building, aim for 3-4 workouts per week with adequate rest between muscle groups. Remember, recovery is just as important as training!",
+      "Consider implementing a push-pull-legs split for optimal muscle development and recovery time between sessions."
     ],
     nutrition: [
-      "Your daily protein intake should be around 1.6-2.2g per kg of body weight for muscle building.",
-      "Have a protein-rich meal within 30 minutes after your workout to maximize muscle protein synthesis.",
-      "Don't forget about carbs! They're your body's preferred energy source during workouts."
+      "Your daily protein intake should be around 1.6-2.2g per kg of body weight for muscle building. Spread this across 4-6 meals for optimal absorption.",
+      "Have a protein-rich meal within 30 minutes after your workout to maximize muscle protein synthesis and kickstart recovery.",
+      "Don't forget about carbs! They're your body's preferred energy source during workouts. Aim for 3-5g per kg of body weight on training days.",
+      "Stay hydrated! Aim for at least 3-4 liters of water daily, more if you're training intensely or in hot conditions."
     ],
     motivation: [
-      "Remember why you started! Every expert was once a beginner. Consistency beats perfection every time.",
-      "Progress isn't always linear, but every workout makes you stronger than yesterday. Keep pushing!",
-      "You're building more than just muscle - you're building discipline, confidence, and mental strength!"
+      "Remember why you started! Every expert was once a beginner. Consistency beats perfection every single time. Keep showing up! 💪",
+      "Progress isn't always linear, but every workout makes you stronger than yesterday. You're building more than just muscle - you're building discipline and mental strength!",
+      "You're doing amazing! The fact that you're here asking questions shows your commitment. Let's turn that commitment into incredible results!",
+      "Success is not final, failure is not fatal: it is the courage to continue that counts. Keep pushing forward! 🚀"
+    ],
+    recovery: [
+      "Recovery is crucial for progress. Aim for 7-9 hours of quality sleep, manage stress levels, and consider deload weeks every 4-6 weeks.",
+      "Stretching and mobility work should be part of your routine. Spend 10-15 minutes daily on flexibility to prevent injuries and improve performance.",
+      "Listen to your body. If you're feeling run down, it's okay to take an extra rest day. Better to rest than to get injured!",
+      "Consider incorporating foam rolling and massage to help with muscle recovery and reduce soreness between workouts."
     ]
   };
 
-  // Quick action suggestions
+  // Quick action suggestions with enhanced options
   const quickActions = [
-    { text: "Create a workout plan", icon: FaDumbbell, category: "workout" },
-    { text: "Nutrition advice", icon: FaAppleAlt, category: "nutrition" },
-    { text: "Motivation boost", icon: FaHeart, category: "motivation" },
-    { text: "Form check tips", icon: FaTrophy, category: "workout" }
+    { text: "Create a workout plan", icon: FaDumbbell, category: "workout", prompt: "Can you help me create a personalized workout plan for my goals?" },
+    { text: "Nutrition advice", icon: FaAppleAlt, category: "nutrition", prompt: "I need help with my nutrition plan and meal timing." },
+    { text: "Motivation boost", icon: FaHeart, category: "motivation", prompt: "I'm feeling unmotivated today, can you help me get back on track?" },
+    { text: "Form check tips", icon: FaTrophy, category: "workout", prompt: "What are the most important form cues for compound lifts?" },
+    { text: "Recovery tips", icon: FaHeart, category: "recovery", prompt: "How can I improve my recovery between workouts?" },
+    { text: "Goal setting", icon: FaChartLine, category: "motivation", prompt: "Help me set realistic and achievable fitness goals." }
   ];
 
   useEffect(() => {
@@ -62,17 +83,56 @@ I'm here to help you with:
 • Recovery and injury prevention
 
 What would you like to work on today?`,
-      timestamp: new Date()
+      timestamp: new Date(),
+      personality: coachPersonality
     };
     setMessages([welcomeMessage]);
-  }, []);
+
+    // Connect to real-time service
+    if (currentUser?.uid) {
+      realtimeService.connect(currentUser.uid);
+      setConnectionStatus(realtimeService.getConnectionStatus());
+    }
+
+    // Load conversation history from localStorage
+    const savedHistory = localStorage.getItem(`chatHistory_${currentUser?.uid || 'anonymous'}`);
+    if (savedHistory) {
+      try {
+        setConversationHistory(JSON.parse(savedHistory));
+      } catch (error) {
+        console.error('Error loading chat history:', error);
+      }
+    }
+
+    // Subscribe to real-time updates
+    const unsubscribe = realtimeService.subscribe('receive_message', (message) => {
+      setMessages(prev => [...prev, {
+        id: Date.now(),
+        type: 'ai',
+        content: message.content,
+        timestamp: new Date(message.timestamp),
+        sender: message.sender
+      }]);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [currentUser?.uid]);
 
   useEffect(() => {
     // Auto-scroll to bottom
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const sendMessage = async (message = inputMessage) => {
+  useEffect(() => {
+    // Save conversation history
+    if (conversationHistory.length > 0) {
+      localStorage.setItem(`chatHistory_${currentUser?.uid || 'anonymous'}`, JSON.stringify(conversationHistory));
+    }
+  }, [conversationHistory, currentUser?.uid]);
+
+  const sendMessage = useCallback(async (message = inputMessage) => {
     if (!message.trim()) return;
 
     const userMessage = {
@@ -85,30 +145,87 @@ What would you like to work on today?`,
     setMessages(prev => [...prev, userMessage]);
     setInputMessage("");
     setIsTyping(true);
+    setError(null);
 
-    // Simulate AI response
-    setTimeout(() => {
-      const aiResponse = generateAIResponse(message);
+    try {
+      const response = await fetch('/api/ai-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          message, 
+          personality: coachPersonality,
+          userId: currentUser?.uid,
+          context: `User is asking about fitness, nutrition, or motivation. Current personality: ${coachPersonality}`
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
       const aiMessage = {
         id: Date.now() + 1,
-        type: "ai",
-        content: aiResponse,
-        timestamp: new Date()
+        type: 'ai',
+        content: data.reply,
+        timestamp: new Date(data.timestamp || Date.now()),
+        personality: coachPersonality,
+        context: data.context
       };
 
       setMessages(prev => [...prev, aiMessage]);
+
+      // Add to conversation history
+      setConversationHistory(prev => [...prev, {
+        user: message,
+        ai: data.reply,
+        timestamp: new Date().toISOString(),
+        personality: coachPersonality
+      }]);
+
+      // Send real-time update if connected
+      if (connectionStatus.isConnected) {
+        realtimeService.sendMessage('ai-coach', message, currentUser?.email || 'Anonymous');
+      }
+
+    } catch (error) {
+      console.error('AI Chat error:', error);
+      setError(error.message);
+      
+      // Fallback to local responses
+      const fallbackResponse = generateAIResponse(message);
+      const aiMessage = {
+        id: Date.now() + 1,
+        type: 'ai',
+        content: fallbackResponse,
+        timestamp: new Date(),
+        personality: coachPersonality,
+        context: 'fallback'
+      };
+      
+      setMessages(prev => [...prev, aiMessage]);
+      toast.error('AI service unavailable, using fallback responses');
+      
+    } finally {
       setIsTyping(false);
-    }, 1000 + Math.random() * 2000);
-  };
+    }
+  }, [inputMessage, coachPersonality, currentUser, connectionStatus.isConnected]);
 
   const generateAIResponse = (userInput) => {
     const input = userInput.toLowerCase();
     
     let category = "motivation";
-    if (input.includes("workout") || input.includes("exercise") || input.includes("training")) {
+    if (input.includes("workout") || input.includes("exercise") || input.includes("training") || input.includes("lift")) {
       category = "workout";
-    } else if (input.includes("nutrition") || input.includes("diet") || input.includes("food")) {
+    } else if (input.includes("nutrition") || input.includes("diet") || input.includes("food") || input.includes("protein")) {
       category = "nutrition";
+    } else if (input.includes("recovery") || input.includes("rest") || input.includes("sleep") || input.includes("sore")) {
+      category = "recovery";
     }
 
     const responses = aiResponses[category];
@@ -116,12 +233,40 @@ What would you like to work on today?`,
 
     if (coachPersonality === "motivational") {
       return randomResponse + " 💪 You've got this!";
+    } else if (coachPersonality === "technical") {
+      return randomResponse + " Remember to track your progress and adjust as needed.";
+    } else if (coachPersonality === "friendly") {
+      return randomResponse + " 😊 Keep up the great work!";
+    } else if (coachPersonality === "strict") {
+      return randomResponse + " Now get back to work!";
     }
+    
     return randomResponse;
   };
 
   const handleQuickAction = (action) => {
-    sendMessage(action.text);
+    sendMessage(action.prompt || action.text);
+  };
+
+  const clearHistory = () => {
+    setConversationHistory([]);
+    localStorage.removeItem(`chatHistory_${currentUser?.uid || 'anonymous'}`);
+    toast.success('Chat history cleared');
+  };
+
+  const exportConversation = () => {
+    const conversationText = messages
+      .map(msg => `${msg.type === 'user' ? 'You' : 'AI Coach'}: ${msg.content}`)
+      .join('\n\n');
+    
+    const blob = new Blob([conversationText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `fitness-chat-${new Date().toISOString().split('T')[0]}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Conversation exported');
   };
 
   return (
@@ -143,16 +288,40 @@ What would you like to work on today?`,
                   <small className="text-muted">Your personal fitness companion</small>
                 </div>
               </div>
-              <Button
-                variant="outline-secondary"
-                size="sm"
-                onClick={() => setShowSettings(true)}
-              >
-                <FaCog />
-              </Button>
+              <div className="d-flex gap-2">
+                {/* Connection Status */}
+                <Badge bg={connectionStatus.isConnected ? "success" : "danger"} className="d-flex align-items-center">
+                  {connectionStatus.isConnected ? <FaWifi /> : <FaTimes />}
+                  <span className="ms-1">{connectionStatus.isConnected ? "Live" : "Offline"}</span>
+                </Badge>
+                
+                <Button
+                  variant="outline-secondary"
+                  size="sm"
+                  onClick={() => setShowHistory(true)}
+                >
+                  <FaHistory />
+                </Button>
+                
+                <Button
+                  variant="outline-secondary"
+                  size="sm"
+                  onClick={() => setShowSettings(true)}
+                >
+                  <FaCog />
+                </Button>
+              </div>
             </div>
           </Col>
         </Row>
+
+        {/* Error Alert */}
+        {error && (
+          <Alert variant="danger" dismissible onClose={() => setError(null)}>
+            <FaExclamationTriangle className="me-2" />
+            {error}
+          </Alert>
+        )}
 
         <Row className="flex-grow-1">
           <Col lg={8} className="d-flex flex-column">
@@ -192,6 +361,11 @@ What would you like to work on today?`,
                               <small className="text-muted">
                                 {message.timestamp.toLocaleTimeString()}
                               </small>
+                              {message.context && (
+                                <Badge bg="secondary" className="ms-2">
+                                  {message.context}
+                                </Badge>
+                              )}
                             </div>
                             <div style={{ whiteSpace: "pre-line" }}>{message.content}</div>
                           </div>
@@ -261,11 +435,12 @@ What would you like to work on today?`,
                           sendMessage();
                         }
                       }}
+                      disabled={isTyping}
                     />
                     <Button
                       variant="primary"
                       onClick={() => sendMessage()}
-                      disabled={!inputMessage.trim()}
+                      disabled={!inputMessage.trim() || isTyping}
                     >
                       <FaPaperPlane />
                     </Button>
@@ -288,7 +463,7 @@ What would you like to work on today?`,
                   <h5>AI Fitness Coach</h5>
                   <p className="text-muted small">Your personal fitness companion</p>
                   <Badge bg="primary" className="mb-2">
-                    AI Coach
+                    {coachPersonality.charAt(0).toUpperCase() + coachPersonality.slice(1)} Coach
                   </Badge>
                 </Card.Body>
               </Card>
@@ -303,6 +478,10 @@ What would you like to work on today?`,
                     <span>Total Messages:</span>
                     <Badge bg="primary">{messages.length}</Badge>
                   </div>
+                  <div className="d-flex justify-content-between mb-2">
+                    <span>Conversation History:</span>
+                    <Badge bg="info">{conversationHistory.length}</Badge>
+                  </div>
                   <div className="d-flex justify-content-between">
                     <span>Coach Rating:</span>
                     <div>
@@ -310,6 +489,25 @@ What would you like to work on today?`,
                         <FaStar key={star} className="text-warning" />
                       ))}
                     </div>
+                  </div>
+                </Card.Body>
+              </Card>
+
+              {/* Actions */}
+              <Card>
+                <Card.Header>
+                  <h6 className="mb-0">Actions</h6>
+                </Card.Header>
+                <Card.Body>
+                  <div className="d-grid gap-2">
+                    <Button variant="outline-primary" size="sm" onClick={exportConversation}>
+                      <FaComments className="me-1" />
+                      Export Chat
+                    </Button>
+                    <Button variant="outline-danger" size="sm" onClick={clearHistory}>
+                      <FaTrash className="me-1" />
+                      Clear History
+                    </Button>
                   </div>
                 </Card.Body>
               </Card>
@@ -335,10 +533,52 @@ What would you like to work on today?`,
               <option value="friendly">Friendly</option>
               <option value="strict">Strict</option>
             </Form.Select>
+            <Form.Text className="text-muted">
+              Choose how your AI coach communicates with you
+            </Form.Text>
           </Form.Group>
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setShowSettings(false)}>
+            Close
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* History Modal */}
+      <Modal show={showHistory} onHide={() => setShowHistory(false)} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>Conversation History</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {conversationHistory.length === 0 ? (
+            <p className="text-muted text-center">No conversation history yet</p>
+          ) : (
+            <ListGroup>
+              {conversationHistory.slice(-10).reverse().map((conversation, index) => (
+                <ListGroup.Item key={index}>
+                  <div className="d-flex justify-content-between align-items-start mb-2">
+                    <small className="text-muted">
+                      {new Date(conversation.timestamp).toLocaleString()}
+                    </small>
+                    <Badge bg="secondary">{conversation.personality}</Badge>
+                  </div>
+                  <div className="mb-2">
+                    <strong>You:</strong> {conversation.user}
+                  </div>
+                  <div>
+                    <strong>AI Coach:</strong> {conversation.ai}
+                  </div>
+                </ListGroup.Item>
+              ))}
+            </ListGroup>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="outline-danger" onClick={clearHistory}>
+            Clear History
+          </Button>
+          <Button variant="secondary" onClick={() => setShowHistory(false)}>
             Close
           </Button>
         </Modal.Footer>

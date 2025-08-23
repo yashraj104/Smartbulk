@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Container, Row, Col, Card, Button, Form,
   Badge, Modal, InputGroup, Dropdown,
@@ -8,8 +8,11 @@ import { motion } from "framer-motion";
 import {
   FaHeart, FaComment, FaShare, FaEllipsisH, FaPlus,
   FaTrophy, FaFire, FaDumbbell, FaAppleAlt, FaUsers,
-  FaMedal, FaStar, FaBookmark
+  FaMedal, FaStar, FaBookmark, FaWifi, FaTimes
 } from "react-icons/fa";
+import { useAuth } from '../contexts/AuthContext';
+import realtimeService from '../services/RealtimeService';
+import toast from 'react-hot-toast';
 
 function CommunityFeed() {
   const [posts, setPosts] = useState([]);
@@ -24,9 +27,14 @@ function CommunityFeed() {
   });
   const [filter, setFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [connectionStatus, setConnectionStatus] = useState({ isConnected: false });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  const { currentUser: authUser } = useAuth();
   const [currentUser] = useState({
-    id: 1,
-    username: "FitnessFanatic",
+    id: authUser?.uid || 1,
+    username: authUser?.displayName || "FitnessFanatic",
     avatar: "https://via.placeholder.com/50/4CAF50/FFFFFF?text=FF",
     level: "Gold",
     points: 2847
@@ -126,18 +134,76 @@ function CommunityFeed() {
   ];
 
   useEffect(() => {
-    setPosts(samplePosts);
-    
-    // Load user interactions from localStorage
-    const savedInteractions = localStorage.getItem('communityInteractions');
-    if (savedInteractions) {
-      const interactions = JSON.parse(savedInteractions);
-      setPosts(prev => prev.map(post => ({
-        ...post,
-        liked: interactions[post.id]?.liked || false,
-        bookmarked: interactions[post.id]?.bookmarked || false
-      })));
+    // Connect to real-time service
+    if (authUser?.uid) {
+      realtimeService.connect(authUser.uid);
+      setConnectionStatus(realtimeService.getConnectionStatus());
     }
+
+    // Subscribe to real-time updates
+    const unsubscribeNewPost = realtimeService.subscribe('new_post', (newPost) => {
+      setPosts(prev => [newPost, ...prev]);
+    });
+
+    const unsubscribePostLiked = realtimeService.subscribe('post_liked', (data) => {
+      setPosts(prev => prev.map(post => 
+        post.id === data.postId 
+          ? { ...post, likes: data.likes }
+          : post
+      ));
+    });
+
+    const unsubscribeNewComment = realtimeService.subscribe('new_comment', (data) => {
+      setPosts(prev => prev.map(post => 
+        post.id === data.postId 
+          ? { ...post, comments: post.comments + 1, commentsList: [...post.commentsList, data.comment] }
+          : post
+      ));
+    });
+
+    return () => {
+      unsubscribeNewPost();
+      unsubscribePostLiked();
+      unsubscribeNewComment();
+    };
+  }, [authUser?.uid]);
+
+  useEffect(() => {
+    (async () => {
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        const resp = await fetch('/api/community/posts');
+        if (resp.ok) {
+          const data = await resp.json();
+          setPosts(data.length ? data : samplePosts);
+        } else {
+          setPosts(samplePosts);
+        }
+      } catch (e) {
+        console.error('Error fetching posts:', e);
+        setError('Failed to load posts. Using sample data.');
+        setPosts(samplePosts);
+      } finally {
+        setIsLoading(false);
+      }
+
+      // Load saved interactions
+      const savedInteractions = localStorage.getItem('communityInteractions');
+      if (savedInteractions) {
+        try {
+          const interactions = JSON.parse(savedInteractions);
+          setPosts(prev => prev.map(post => ({
+            ...post,
+            liked: interactions[post.id]?.liked || false,
+            bookmarked: interactions[post.id]?.bookmarked || false
+          })));
+        } catch (e) {
+          console.error('Error loading interactions:', e);
+        }
+      }
+    })();
   }, []);
 
   useEffect(() => {
@@ -152,12 +218,24 @@ function CommunityFeed() {
     localStorage.setItem('communityInteractions', JSON.stringify(interactions));
   }, [posts]);
 
-  const handleLike = (postId) => {
+  const handleLike = async (postId) => {
     setPosts(prev => prev.map(post =>
       post.id === postId
         ? { ...post, likes: post.liked ? post.likes - 1 : post.likes + 1, liked: !post.liked }
         : post
     ));
+    
+    try { 
+      await fetch(`/api/community/posts/${postId}/like`, { method: 'POST' });
+      
+      // Send real-time update
+      if (connectionStatus.isConnected) {
+        realtimeService.updatePostInteraction(postId, 'like', currentUser.id);
+      }
+    } catch (error) {
+      console.error('Error liking post:', error);
+      toast.error('Failed to like post');
+    }
   };
 
   const handleBookmark = (postId) => {
@@ -168,7 +246,7 @@ function CommunityFeed() {
     ));
   };
 
-  const handleComment = (postId, comment) => {
+  const handleComment = async (postId, comment) => {
     if (!comment.trim()) return;
     
     const newComment = {
@@ -183,28 +261,38 @@ function CommunityFeed() {
         ? { ...post, comments: post.comments + 1, commentsList: [...post.commentsList, newComment] }
         : post
     ));
+
+    try {
+      await fetch(`/api/community/posts/${postId}/comment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user: currentUser.username, content: comment })
+      });
+      
+      // Send real-time update
+      if (connectionStatus.isConnected) {
+        realtimeService.updatePostInteraction(postId, 'comment', currentUser.id);
+      }
+    } catch (error) {
+      console.error('Error adding comment:', error);
+      toast.error('Failed to add comment');
+    }
   };
 
-  const createPost = () => {
+  const createPost = async () => {
     if (!newPost.content.trim()) return;
-
-    const post = {
-      id: Date.now(),
-      user: currentUser,
-      content: newPost.content,
-      type: newPost.type,
-      image: newPost.image,
-      likes: 0,
-      comments: 0,
-      shares: 0,
-      timestamp: "Just now",
-      tags: newPost.tags,
-      liked: false,
-      bookmarked: false,
-      commentsList: []
-    };
-
-    setPosts(prev => [post, ...prev]);
+    const payload = { user: currentUser, content: newPost.content, type: newPost.type, image: newPost.image, tags: newPost.tags };
+    try {
+      const resp = await fetch('/api/community/posts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (resp.ok) {
+        const saved = await resp.json();
+        setPosts(prev => [saved, ...prev]);
+      } else {
+        setPosts(prev => [{ id: Date.now(), ...payload, likes: 0, comments: 0, shares: 0, timestamp: 'Just now', liked: false, bookmarked: false, commentsList: [] }, ...prev]);
+      }
+    } catch (e) {
+      setPosts(prev => [{ id: Date.now(), ...payload, likes: 0, comments: 0, shares: 0, timestamp: 'Just now', liked: false, bookmarked: false, commentsList: [] }, ...prev]);
+    }
     setNewPost({ content: "", type: "achievement", image: "", tags: [] });
     setShowCreateModal(false);
   };
@@ -241,15 +329,28 @@ function CommunityFeed() {
         {/* Header */}
         <Row className="mb-4">
           <Col>
-            <h1 className="display-4 text-center mb-3">
-              <FaUsers className="me-3" />
-              Community Feed
-            </h1>
-            <p className="lead text-center text-muted">
-              Connect with fitness enthusiasts, share your achievements, and get inspired
-            </p>
+            <div className="text-center">
+              <h1 className="display-4 mb-3">
+                <FaUsers className="me-3" />
+                Community Feed
+              </h1>
+              <p className="lead text-muted mb-2">
+                Connect with fitness enthusiasts, share your achievements, and get inspired
+              </p>
+                             <Badge bg={connectionStatus.isConnected ? "success" : "danger"} className="d-flex align-items-center justify-content-center mx-auto" style={{ width: 'fit-content' }}>
+                 {connectionStatus.isConnected ? <FaWifi /> : <FaTimes />}
+                 <span className="ms-1">{connectionStatus.isConnected ? "Live Updates" : "Offline Mode"}</span>
+               </Badge>
+            </div>
           </Col>
         </Row>
+
+        {/* Error Alert */}
+        {error && (
+          <Alert variant="warning" dismissible onClose={() => setError(null)}>
+            {error}
+          </Alert>
+        )}
 
         {/* User Stats Card */}
         <Row className="mb-4">
@@ -572,10 +673,18 @@ function CommunityFeed() {
                   as="textarea"
                   rows={2}
                   placeholder="Add a comment..."
-                  onKeyPress={(e) => {
+                  onKeyPress={async (e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
-                      handleComment(selectedPost.id, e.target.value);
+                      const text = e.target.value;
+                      handleComment(selectedPost.id, text);
+                      try {
+                        await fetch(`/api/community/posts/${selectedPost.id}/comment`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ user: currentUser.username, content: text })
+                        });
+                      } catch {}
                       e.target.value = '';
                     }
                   }}
