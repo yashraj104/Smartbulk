@@ -44,7 +44,7 @@ function Register() {
   const [registrationError, setRegistrationError] = useState("");
   
   const navigate = useNavigate();
-  const { signup } = useAuth();
+  const { signup, signInWithGoogle } = useAuth();
 
   const goals = [
     { value: "weight_loss", label: "Weight Loss", icon: "🔥" },
@@ -171,6 +171,35 @@ function Register() {
         ? prev.dietaryRestrictions.filter(item => item !== value)
         : [...prev.dietaryRestrictions, value]
     }));
+  };
+
+  const handleSocialLogin = async (provider) => {
+    if (provider === 'google') {
+      setIsLoading(true);
+      setRegistrationError("");
+      
+      try {
+        await signInWithGoogle();
+        navigate('/dashboard');
+      } catch (error) {
+        console.error('Google sign-up error:', error);
+        let errorMessage = "Google sign-up failed. Please try again.";
+        
+        if (error.code === 'auth/popup-closed-by-user') {
+          errorMessage = "Sign-up popup was closed. Please try again.";
+        } else if (error.code === 'auth/popup-blocked') {
+          errorMessage = "Pop-up blocked by browser. Please allow pop-ups and try again.";
+        } else if (error.code === 'auth/account-exists-with-different-credential') {
+          errorMessage = "An account already exists with this email using a different sign-in method.";
+        }
+        
+        setRegistrationError(errorMessage);
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      console.log(`${provider} sign-up not implemented yet`);
+    }
   };
 
   const renderStep1 = () => (
@@ -300,6 +329,31 @@ function Register() {
           </Form.Group>
         </Col>
       </Row>
+      
+      <div className="text-center mb-4">
+        <span className="text-muted">Or continue with</span>
+      </div>
+
+      <div className="d-flex gap-2 mb-4">
+        <Button
+          variant="outline-danger"
+          className="flex-fill"
+          onClick={() => handleSocialLogin('google')}
+          disabled={isLoading}
+        >
+          <FaGoogle className="me-2" />
+          Google
+        </Button>
+        <Button
+          variant="outline-primary"
+          className="flex-fill"
+          onClick={() => handleSocialLogin('facebook')}
+          disabled={isLoading}
+        >
+          <FaFacebook className="me-2" />
+          Facebook
+        </Button>
+      </div>
     </>
   );
 

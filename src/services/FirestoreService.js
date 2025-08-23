@@ -14,7 +14,7 @@ import {
   serverTimestamp,
   writeBatch
 } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db } from '../firebase/config';
 
 /**
  * Comprehensive Firestore Service for SmartBulk App

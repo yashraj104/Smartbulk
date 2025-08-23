@@ -8,6 +8,7 @@ const Home = lazy(() => import("./components/Home"));
 const Payment = lazy(() => import("./components/Payment"));
 const WorkoutPlanner = lazy(() => import("./components/WorkoutPlanner"));
 const DietPlanner = lazy(() => import("./components/DietPlanner"));
+const FoodLogger = lazy(() => import("./components/FoodLogger"));
 const ProgressTracker = lazy(() => import("./components/ProgressTracker"));
 const ExerciseLibrary = lazy(() => import("./components/ExerciseLibrary"));
 const MacroCalculator = lazy(() => import("./components/MacroCalculator"));
@@ -104,9 +105,11 @@ function AppContent() {
               <Nav.Link as={NavLink} end to="/" className={({isActive}) => `fw-semibold ${isActive ? 'active' : ''}`}>Home</Nav.Link>
               <Nav.Link as={NavLink} to="/workout" className={({isActive}) => `fw-semibold ${isActive ? 'active' : ''}`}>Workouts</Nav.Link>
               <Nav.Link as={NavLink} to="/diet" className={({isActive}) => `fw-semibold ${isActive ? 'active' : ''}`}>Nutrition</Nav.Link>
+              <Nav.Link as={NavLink} to="/food-logger" className={({isActive}) => `fw-semibold ${isActive ? 'active' : ''}`}>Food Logger</Nav.Link>
               <Nav.Link as={NavLink} to="/progress" className={({isActive}) => `fw-semibold ${isActive ? 'active' : ''}`}>Progress</Nav.Link>
               <Nav.Link as={NavLink} to="/ai" className={({isActive}) => `fw-semibold ${isActive ? 'active text-warning' : 'text-warning'}`}>AI Coach</Nav.Link>
               <Nav.Link as={NavLink} to="/community" className={({isActive}) => `fw-semibold ${isActive ? 'active' : ''}`}>Community</Nav.Link>
+              <Nav.Link as={NavLink} to="/trainers" className={({isActive}) => `fw-semibold ${isActive ? 'active' : ''}`}>Trainers</Nav.Link>
             </Nav>
             
             <div className="d-flex gap-2 align-items-center">
@@ -178,6 +181,7 @@ function AppContent() {
             <Route path="/payment" element={<Payment />} />
             <Route path="/workout" element={<WorkoutPlanner />} />
             <Route path="/diet" element={<DietPlanner />} />
+            <Route path="/food-logger" element={<FoodLogger />} />
             <Route path="/progress" element={<ProgressTracker />} />
             <Route path="/library" element={<ExerciseLibrary />} />
             <Route path="/macro" element={<MacroCalculator />} />

@@ -10,9 +10,10 @@ import {
   FaDumbbell, FaClock, FaFire, FaCheck, FaTimes,
   FaSave, FaCalendar, FaTarget, FaHeart
 } from "react-icons/fa";
+import { useAuth } from "../contexts/AuthContext";
 
 function WorkoutPlanner() {
-  const [user, setUser] = useState(null);
+  const { currentUser, userProfile } = useAuth();
   const [activeTab, setActiveTab] = useState('plans');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showExerciseModal, setShowExerciseModal] = useState(false);
@@ -43,12 +44,10 @@ function WorkoutPlanner() {
   ];
 
   useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      setUser(JSON.parse(userData));
+    if (currentUser) {
+      loadSampleWorkouts();
     }
-    loadSampleWorkouts();
-  }, []);
+  }, [currentUser]);
 
   useEffect(() => {
     let interval;
@@ -59,6 +58,17 @@ function WorkoutPlanner() {
     }
     return () => clearInterval(interval);
   }, [isWorkoutActive, currentWorkout]);
+
+  if (!currentUser) {
+    return (
+      <Container className="py-5">
+        <Alert variant="info">
+          <h4>Please log in to access the workout planner</h4>
+          <p>You need to be logged in to create and manage your workout plans.</p>
+        </Alert>
+      </Container>
+    );
+  }
 
   const loadSampleWorkouts = () => {
     const sampleWorkouts = [
@@ -343,7 +353,7 @@ function WorkoutPlanner() {
     </div>
   );
 
-  if (!user) {
+  if (!currentUser) {
     return (
       <Container className="py-5 text-center">
         <Alert variant="info">Please log in to access the workout planner.</Alert>

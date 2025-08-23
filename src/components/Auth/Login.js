@@ -19,7 +19,7 @@ function Login() {
   const [loginError, setLoginError] = useState("");
   
   const navigate = useNavigate();
-  const { login, resetPassword } = useAuth();
+  const { login, signInWithGoogle, resetPassword } = useAuth();
 
   const validateForm = () => {
     const newErrors = {};
@@ -81,9 +81,33 @@ function Login() {
     }
   };
 
-  const handleSocialLogin = (provider) => {
-    // Implement social login logic here
-    console.log(`${provider} login clicked`);
+  const handleSocialLogin = async (provider) => {
+    if (provider === 'google') {
+      setIsLoading(true);
+      setLoginError("");
+      
+      try {
+        await signInWithGoogle();
+        navigate('/dashboard');
+      } catch (error) {
+        console.error('Google login error:', error);
+        let errorMessage = "Google sign-in failed. Please try again.";
+        
+        if (error.code === 'auth/popup-closed-by-user') {
+          errorMessage = "Sign-in popup was closed. Please try again.";
+        } else if (error.code === 'auth/popup-blocked') {
+          errorMessage = "Pop-up blocked by browser. Please allow pop-ups and try again.";
+        } else if (error.code === 'auth/account-exists-with-different-credential') {
+          errorMessage = "An account already exists with this email using a different sign-in method.";
+        }
+        
+        setLoginError(errorMessage);
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      console.log(`${provider} login not implemented yet`);
+    }
   };
 
   return (

@@ -57,6 +57,98 @@ body.dark-mode .bg-gradient {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
 }
 
+/* Enhanced Dark Mode Styles */
+body.dark-mode .navbar {
+  background-color: #1e1e1e !important;
+  border-bottom-color: #333 !important;
+}
+
+body.dark-mode .navbar-brand,
+body.dark-mode .navbar-nav .nav-link {
+  color: #ffffff !important;
+}
+
+body.dark-mode .navbar-nav .nav-link:hover,
+body.dark-mode .navbar-nav .nav-link.active {
+  color: #ffc107 !important;
+}
+
+body.dark-mode .form-control,
+body.dark-mode .form-select {
+  background-color: #2d2d2d !important;
+  border-color: #404040 !important;
+  color: #ffffff !important;
+}
+
+body.dark-mode .form-control:focus,
+body.dark-mode .form-select:focus {
+  background-color: #2d2d2d !important;
+  border-color: #ffc107 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 0 0.2rem rgba(255, 193, 7, 0.25) !important;
+}
+
+body.dark-mode .btn-outline-dark {
+  border-color: #ffffff !important;
+  color: #ffffff !important;
+}
+
+body.dark-mode .btn-outline-dark:hover {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+body.dark-mode .dropdown-menu {
+  background-color: #1e1e1e !important;
+  border-color: #333 !important;
+}
+
+body.dark-mode .dropdown-item {
+  color: #ffffff !important;
+}
+
+body.dark-mode .dropdown-item:hover {
+  background-color: #2d2d2d !important;
+  color: #ffffff !important;
+}
+
+body.dark-mode .list-group-item {
+  background-color: #1e1e1e !important;
+  border-color: #333 !important;
+  color: #ffffff !important;
+}
+
+body.dark-mode .modal-content {
+  background-color: #1e1e1e !important;
+  border-color: #333 !important;
+  color: #ffffff !important;
+}
+
+body.dark-mode .modal-header {
+  border-bottom-color: #333 !important;
+}
+
+body.dark-mode .modal-footer {
+  border-top-color: #333 !important;
+}
+
+body.dark-mode .table {
+  color: #ffffff !important;
+}
+
+body.dark-mode .table td,
+body.dark-mode .table th {
+  border-color: #333 !important;
+}
+
+body.dark-mode .progress {
+  background-color: #2d2d2d !important;
+}
+
+body.dark-mode .shadow-sm {
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.5) !important;
+}
+
 /* Professional Styling */
 .feature-card {
   transition: all 0.3s ease;

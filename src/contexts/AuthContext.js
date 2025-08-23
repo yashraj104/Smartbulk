@@ -2,13 +2,14 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  signInWithPopup,
   signOut,
   sendPasswordResetEmail,
   updateProfile,
   onAuthStateChanged
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
-import { auth, db } from '../firebase/config';
+import { auth, db, googleProvider } from '../firebase/config';
 
 const AuthContext = createContext();
 
@@ -110,6 +111,44 @@ export function AuthProvider({ children }) {
     }
   }
 
+  // Google sign-in function
+  async function signInWithGoogle() {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+      
+      // Check if user profile exists, if not create one
+      const userDocRef = doc(db, 'users', user.uid);
+      const userDocSnap = await getDoc(userDocRef);
+      
+      if (!userDocSnap.exists()) {
+        // Create user profile for Google sign-in
+        const userDoc = {
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName || '',
+          photoURL: user.photoURL || '',
+          age: null,
+          weight: null,
+          height: null,
+          fitnessGoal: 'general',
+          experienceLevel: 'beginner',
+          preferences: {},
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        
+        await setDoc(userDocRef, userDoc);
+        setUserProfile(userDoc);
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Google sign-in error:', error);
+      throw error;
+    }
+  }
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
@@ -129,6 +168,7 @@ export function AuthProvider({ children }) {
     userProfile,
     signup,
     login,
+    signInWithGoogle,
     logout,
     resetPassword,
     updateUserProfile,
