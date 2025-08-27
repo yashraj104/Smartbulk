@@ -9,7 +9,7 @@ import {
   onAuthStateChanged
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
-import { auth, db, googleProvider } from '../firebase/config';
+import { auth, db, googleProvider, handleFirebaseError, getNetworkState } from '../firebase/config';
 
 const AuthContext = createContext();
 
@@ -89,6 +89,12 @@ export function AuthProvider({ children }) {
   // Load user profile from Firestore
   async function loadUserProfile(user) {
     try {
+      // Check network state first
+      if (!getNetworkState()) {
+        console.warn('Device is offline, skipping profile load');
+        return;
+      }
+
       const userDocRef = doc(db, 'users', user.uid);
       const userDocSnap = await getDoc(userDocRef);
       
@@ -107,7 +113,14 @@ export function AuthProvider({ children }) {
         setUserProfile(defaultProfile);
       }
     } catch (error) {
-      console.error('Error loading user profile:', error);
+      const friendlyMessage = handleFirebaseError(error, 'Loading user profile');
+      console.error('Error loading user profile:', friendlyMessage);
+      
+      // For offline errors, don't show to user - just log
+      if (error.code !== 'firestore/unavailable' && !error.message.includes('offline')) {
+        // You could emit an error event here or set an error state
+        console.warn('Profile loading failed, user may need to refresh');
+      }
     }
   }
 

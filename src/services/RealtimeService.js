@@ -13,13 +13,23 @@ class RealtimeService {
       return this.socket;
     }
 
+    // Check if backend service is available before connecting
+    const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
+    
+    // Don't attempt connection if we're in production and no backend URL is set
+    if (process.env.NODE_ENV === 'production' && !process.env.REACT_APP_BACKEND_URL) {
+      console.warn('No backend URL configured for production, skipping real-time connection');
+      return null;
+    }
+
     try {
-      this.socket = io(process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000', {
+      this.socket = io(backendUrl, {
         transports: ['websocket', 'polling'],
-        timeout: 20000,
+        timeout: 10000, // Reduced timeout
         reconnection: true,
-        reconnectionAttempts: 5,
-        reconnectionDelay: 1000,
+        reconnectionAttempts: 3, // Reduced attempts
+        reconnectionDelay: 2000,
+        forceNew: true, // Force new connection
       });
 
       this.socket.on('connect', () => {
@@ -30,18 +40,27 @@ class RealtimeService {
           this.socket.emit('join', userId);
         }
         
-        toast.success('Connected to real-time updates');
+        // Only show success toast in development or if explicitly requested
+        if (process.env.NODE_ENV === 'development') {
+          toast.success('Connected to real-time updates', { duration: 2000 });
+        }
       });
 
       this.socket.on('disconnect', () => {
         console.log('Disconnected from real-time server');
         this.isConnected = false;
-        toast.error('Lost connection to real-time updates');
+        // Only show disconnect error if it was an unexpected disconnect
+        if (process.env.NODE_ENV === 'development') {
+          toast.error('Lost connection to real-time updates', { duration: 2000 });
+        }
       });
 
       this.socket.on('connect_error', (error) => {
         console.error('Connection error:', error);
-        toast.error('Failed to connect to real-time updates');
+        // Don't show toast for connection errors in production
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('Failed to connect to real-time updates');
+        }
       });
 
       // Handle real-time updates
