@@ -12,6 +12,7 @@ import {
 } from "react-icons/fa";
 import { useAuth } from '../contexts/AuthContext';
 import realtimeService from '../services/RealtimeService';
+import FirestoreService from '../services/FirestoreService';
 import toast from 'react-hot-toast';
 
 function CommunityFeed() {
@@ -39,6 +40,47 @@ function CommunityFeed() {
     level: "Gold",
     points: 2847
   });
+
+  // Helper function to format timestamp
+  const formatTimestamp = (timestamp) => {
+    if (!timestamp) return 'Just now';
+    try {
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      const now = new Date();
+      const diff = now - date;
+      const minutes = Math.floor(diff / 60000);
+      const hours = Math.floor(diff / 3600000);
+      const days = Math.floor(diff / 86400000);
+      
+      if (minutes < 1) return 'Just now';
+      if (minutes < 60) return `${minutes}m ago`;
+      if (hours < 24) return `${hours}h ago`;
+      if (days < 7) return `${days}d ago`;
+      return date.toLocaleDateString();
+    } catch {
+      return 'Just now';
+    }
+  };
+
+  // Create initial posts for first-time users
+  const createInitialPosts = async () => {
+    if (!authUser?.uid) return;
+    
+    try {
+      for (const post of samplePosts) {
+        await FirestoreService.createCommunityPost('sample-user', {
+          content: post.content,
+          type: post.type,
+          image: post.image,
+          tags: post.tags,
+          userDisplayName: post.user.username,
+          commentsList: post.commentsList
+        });
+      }
+    } catch (error) {
+      console.error('Error creating initial posts:', error);
+    }
+  };
 
   // Sample community posts
   const samplePosts = [
@@ -169,21 +211,37 @@ function CommunityFeed() {
   }, [authUser?.uid]);
 
   useEffect(() => {
-    (async () => {
+    const loadPosts = async () => {
       setIsLoading(true);
       setError(null);
       
       try {
-        const resp = await fetch('/api/community/posts');
-        if (resp.ok) {
-          const data = await resp.json();
-          setPosts(data.length ? data : samplePosts);
+        const result = await FirestoreService.getCommunityPosts({ limitCount: 50 });
+        if (result.success && result.data.length > 0) {
+          // Transform Firestore data to match component format
+          const transformedPosts = result.data.map(post => ({
+            ...post,
+            user: post.user || {
+              id: post.userId,
+              username: post.userDisplayName || 'Anonymous',
+              avatar: `https://via.placeholder.com/50/4CAF50/FFFFFF?text=${(post.userDisplayName || 'A')[0]}`,
+              level: "Gold",
+              points: 2500
+            },
+            timestamp: formatTimestamp(post.createdAt),
+            commentsList: post.commentsList || [],
+            liked: false,
+            bookmarked: false
+          }));
+          setPosts(transformedPosts);
         } else {
+          // Create some initial sample posts if none exist
+          await createInitialPosts();
           setPosts(samplePosts);
         }
       } catch (e) {
-        console.error('Error fetching posts:', e);
-        setError('Failed to load posts. Using sample data.');
+        console.error('Error fetching posts from Firebase:', e);
+        setError('Failed to load posts from database. Using sample data.');
         setPosts(samplePosts);
       } finally {
         setIsLoading(false);
@@ -203,7 +261,9 @@ function CommunityFeed() {
           console.error('Error loading interactions:', e);
         }
       }
-    })();
+    };
+
+    loadPosts();
   }, []);
 
   useEffect(() => {
@@ -280,19 +340,67 @@ function CommunityFeed() {
   };
 
   const createPost = async () => {
-    if (!newPost.content.trim()) return;
-    const payload = { user: currentUser, content: newPost.content, type: newPost.type, image: newPost.image, tags: newPost.tags };
+    if (!newPost.content.trim() || !authUser?.uid) return;
+    
+    setIsLoading(true);
     try {
-      const resp = await fetch('/api/community/posts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-      if (resp.ok) {
-        const saved = await resp.json();
-        setPosts(prev => [saved, ...prev]);
+      const postData = {
+        content: newPost.content,
+        type: newPost.type,
+        image: newPost.image,
+        tags: newPost.tags,
+        userDisplayName: currentUser.username,
+        commentsList: []
+      };
+      
+      const result = await FirestoreService.createCommunityPost(authUser.uid, postData);
+      
+      if (result.success) {
+        // Create the post object for immediate display
+        const newPostObj = {
+          id: result.id,
+          ...postData,
+          user: currentUser,
+          userId: authUser.uid,
+          likes: 0,
+          comments: 0,
+          shares: 0,
+          timestamp: 'Just now',
+          liked: false,
+          bookmarked: false
+        };
+        
+        setPosts(prev => [newPostObj, ...prev]);
+        toast.success('Post created successfully!');
       } else {
-        setPosts(prev => [{ id: Date.now(), ...payload, likes: 0, comments: 0, shares: 0, timestamp: 'Just now', liked: false, bookmarked: false, commentsList: [] }, ...prev]);
+        throw new Error(result.error || 'Failed to create post');
       }
-    } catch (e) {
-      setPosts(prev => [{ id: Date.now(), ...payload, likes: 0, comments: 0, shares: 0, timestamp: 'Just now', liked: false, bookmarked: false, commentsList: [] }, ...prev]);
+    } catch (error) {
+      console.error('Error creating post:', error);
+      toast.error('Failed to create post. Please try again.');
+      
+      // Fallback: add to local state anyway
+      const fallbackPost = {
+        id: Date.now(),
+        content: newPost.content,
+        type: newPost.type,
+        image: newPost.image,
+        tags: newPost.tags,
+        user: currentUser,
+        userId: authUser.uid,
+        likes: 0,
+        comments: 0,
+        shares: 0,
+        timestamp: 'Just now',
+        liked: false,
+        bookmarked: false,
+        commentsList: []
+      };
+      setPosts(prev => [fallbackPost, ...prev]);
+    } finally {
+      setIsLoading(false);
     }
+    
     setNewPost({ content: "", type: "achievement", image: "", tags: [] });
     setShowCreateModal(false);
   };

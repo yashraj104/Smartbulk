@@ -6,6 +6,7 @@ import {
   deleteDoc, 
   getDocs, 
   getDoc,
+  setDoc,
   query, 
   where, 
   orderBy, 
@@ -31,7 +32,12 @@ class FirestoreService {
     EXERCISES: 'exercises',
     NUTRITION_LOGS: 'nutritionLogs',
     RECOMMENDATIONS: 'recommendations',
-    FEEDBACK: 'feedback'
+    FEEDBACK: 'feedback',
+    COMMUNITY_POSTS: 'communityPosts',
+    TRAINERS: 'trainers',
+    USER_DIET_PLANS: 'userDietPlans',
+    USER_WORKOUT_PLANS: 'userWorkoutPlans',
+    USER_PROGRESS: 'userProgress'
   };
 
   // ==================== USER PROFILE OPERATIONS ====================
@@ -48,7 +54,7 @@ class FirestoreService {
         ...(profileData.createdAt ? {} : { createdAt: serverTimestamp() })
       };
       
-      await updateDoc(userRef, updateData);
+      await setDoc(userRef, updateData, { merge: true });
       return { success: true };
     } catch (error) {
       console.error('Error saving user profile:', error);
@@ -520,7 +526,7 @@ class FirestoreService {
         createdAt: serverTimestamp()
       };
       
-      await updateDoc(recommendationRef, data);
+      await setDoc(recommendationRef, data, { merge: true });
       return { success: true };
     } catch (error) {
       console.error('Error saving recommendations:', error);
@@ -698,6 +704,344 @@ class FirestoreService {
       return { success: true, id: docRef.id };
     } catch (error) {
       console.error('Error submitting feedback:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // ==================== COMMUNITY POSTS OPERATIONS ====================
+
+  /**
+   * Create a new community post
+   */
+  static async createCommunityPost(userId, postData) {
+    try {
+      const postsRef = collection(db, this.COLLECTIONS.COMMUNITY_POSTS);
+      const post = {
+        userId,
+        ...postData,
+        likes: 0,
+        comments: 0,
+        shares: 0,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      };
+      
+      const docRef = await addDoc(postsRef, post);
+      return { success: true, id: docRef.id, data: { ...post, id: docRef.id } };
+    } catch (error) {
+      console.error('Error creating community post:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get all community posts
+   */
+  static async getCommunityPosts(options = {}) {
+    try {
+      const { 
+        limitCount = 50, 
+        orderByField = 'createdAt', 
+        orderDirection = 'desc'
+      } = options;
+
+      const q = query(
+        collection(db, this.COLLECTIONS.COMMUNITY_POSTS),
+        orderBy(orderByField, orderDirection),
+        limit(limitCount)
+      );
+
+      const querySnapshot = await getDocs(q);
+      const posts = [];
+      
+      querySnapshot.forEach((doc) => {
+        posts.push({
+          id: doc.id,
+          ...doc.data()
+        });
+      });
+
+      return { success: true, data: posts };
+    } catch (error) {
+      console.error('Error getting community posts:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Update post likes/comments/shares
+   */
+  static async updatePostInteraction(postId, interactionType, increment = 1) {
+    try {
+      const postRef = doc(db, this.COLLECTIONS.COMMUNITY_POSTS, postId);
+      const updateData = { updatedAt: serverTimestamp() };
+      updateData[interactionType] = increment;
+      
+      await updateDoc(postRef, updateData);
+      return { success: true };
+    } catch (error) {
+      console.error('Error updating post interaction:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Listen to community posts in real-time
+   */
+  static listenToCommunityPosts(callback, options = {}) {
+    try {
+      const { orderByField = 'createdAt', orderDirection = 'desc' } = options;
+      
+      const q = query(
+        collection(db, this.COLLECTIONS.COMMUNITY_POSTS),
+        orderBy(orderByField, orderDirection)
+      );
+
+      return onSnapshot(q, (querySnapshot) => {
+        const posts = [];
+        querySnapshot.forEach((doc) => {
+          posts.push({
+            id: doc.id,
+            ...doc.data()
+          });
+        });
+        callback(posts);
+      });
+    } catch (error) {
+      console.error('Error listening to community posts:', error);
+      return null;
+    }
+  }
+
+  // ==================== TRAINERS OPERATIONS ====================
+
+  /**
+   * Register a new trainer
+   */
+  static async registerTrainer(userId, trainerData) {
+    try {
+      const trainersRef = collection(db, this.COLLECTIONS.TRAINERS);
+      const trainer = {
+        userId,
+        ...trainerData,
+        status: 'pending',
+        rating: 0,
+        totalReviews: 0,
+        totalSessions: 0,
+        isVerified: false,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      };
+      
+      const docRef = await addDoc(trainersRef, trainer);
+      return { success: true, id: docRef.id };
+    } catch (error) {
+      console.error('Error registering trainer:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get all trainers
+   */
+  static async getTrainers(options = {}) {
+    try {
+      const { 
+        limitCount = 50, 
+        status = 'approved',
+        specialization = null,
+        location = null
+      } = options;
+
+      let q = query(
+        collection(db, this.COLLECTIONS.TRAINERS),
+        where('status', '==', status),
+        orderBy('rating', 'desc'),
+        limit(limitCount)
+      );
+
+      if (specialization) {
+        q = query(q, where('specialization', '==', specialization));
+      }
+
+      if (location) {
+        q = query(q, where('location', '==', location));
+      }
+
+      const querySnapshot = await getDocs(q);
+      const trainers = [];
+      
+      querySnapshot.forEach((doc) => {
+        trainers.push({
+          id: doc.id,
+          ...doc.data()
+        });
+      });
+
+      return { success: true, data: trainers };
+    } catch (error) {
+      console.error('Error getting trainers:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Update trainer profile
+   */
+  static async updateTrainer(trainerId, updateData) {
+    try {
+      const trainerRef = doc(db, this.COLLECTIONS.TRAINERS, trainerId);
+      await updateDoc(trainerRef, {
+        ...updateData,
+        updatedAt: serverTimestamp()
+      });
+      return { success: true };
+    } catch (error) {
+      console.error('Error updating trainer:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // ==================== USER DIET PLANS OPERATIONS ====================
+
+  /**
+   * Save user diet plan
+   */
+  static async saveUserDietPlan(userId, dietPlanData) {
+    try {
+      const dietPlansRef = collection(db, this.COLLECTIONS.USER_DIET_PLANS);
+      const dietPlan = {
+        userId,
+        ...dietPlanData,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      };
+      
+      const docRef = await addDoc(dietPlansRef, dietPlan);
+      return { success: true, id: docRef.id };
+    } catch (error) {
+      console.error('Error saving user diet plan:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get user diet plans
+   */
+  static async getUserDietPlans(userId) {
+    try {
+      const q = query(
+        collection(db, this.COLLECTIONS.USER_DIET_PLANS),
+        where('userId', '==', userId),
+        orderBy('createdAt', 'desc')
+      );
+
+      const querySnapshot = await getDocs(q);
+      const dietPlans = [];
+      
+      querySnapshot.forEach((doc) => {
+        dietPlans.push({
+          id: doc.id,
+          ...doc.data()
+        });
+      });
+
+      return { success: true, data: dietPlans };
+    } catch (error) {
+      console.error('Error getting user diet plans:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // ==================== USER WORKOUT PLANS OPERATIONS ====================
+
+  /**
+   * Save user workout plan
+   */
+  static async saveUserWorkoutPlan(userId, workoutPlanData) {
+    try {
+      const workoutPlansRef = collection(db, this.COLLECTIONS.USER_WORKOUT_PLANS);
+      const workoutPlan = {
+        userId,
+        ...workoutPlanData,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      };
+      
+      const docRef = await addDoc(workoutPlansRef, workoutPlan);
+      return { success: true, id: docRef.id };
+    } catch (error) {
+      console.error('Error saving user workout plan:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get user workout plans
+   */
+  static async getUserWorkoutPlans(userId) {
+    try {
+      const q = query(
+        collection(db, this.COLLECTIONS.USER_WORKOUT_PLANS),
+        where('userId', '==', userId),
+        orderBy('createdAt', 'desc')
+      );
+
+      const querySnapshot = await getDocs(q);
+      const workoutPlans = [];
+      
+      querySnapshot.forEach((doc) => {
+        workoutPlans.push({
+          id: doc.id,
+          ...doc.data()
+        });
+      });
+
+      return { success: true, data: workoutPlans };
+    } catch (error) {
+      console.error('Error getting user workout plans:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // ==================== USER PROGRESS OPERATIONS ====================
+
+  /**
+   * Save user progress data
+   */
+  static async saveUserProgress(userId, progressData) {
+    try {
+      const progressRef = doc(db, this.COLLECTIONS.USER_PROGRESS, userId);
+      const data = {
+        userId,
+        ...progressData,
+        updatedAt: serverTimestamp(),
+        ...(progressData.createdAt ? {} : { createdAt: serverTimestamp() })
+      };
+      
+      await setDoc(progressRef, data, { merge: true });
+      return { success: true };
+    } catch (error) {
+      console.error('Error saving user progress:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get user progress data
+   */
+  static async getUserProgress(userId) {
+    try {
+      const progressRef = doc(db, this.COLLECTIONS.USER_PROGRESS, userId);
+      const progressSnap = await getDoc(progressRef);
+      
+      if (progressSnap.exists()) {
+        return { success: true, data: progressSnap.data() };
+      } else {
+        return { success: false, error: 'Progress data not found' };
+      }
+    } catch (error) {
+      console.error('Error getting user progress:', error);
       return { success: false, error: error.message };
     }
   }

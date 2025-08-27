@@ -6,8 +6,8 @@ import {
 import { motion } from 'framer-motion';
 import { 
   FaUser, FaDumbbell, FaUtensils, FaChartLine, FaTrophy,
-  FaCalendar, FaTarget, FaFire, FaHeart, FaRunning,
-  FaWeight, FaRuler, FaBullseye, FaPlus
+  FaCalendar, FaBullseye, FaFire, FaHeart, FaRunning,
+  FaWeight, FaRuler, FaPlus
 } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import { Link } from 'react-router-dom';
@@ -212,7 +212,7 @@ function Dashboard() {
                   <ListGroup variant="flush">
                     <ListGroupItem className="d-flex justify-content-between align-items-center">
                       <div>
-                        <FaTarget className="me-2 text-primary" />
+                        <FaBullseye className="me-2 text-primary" />
                         Reach 80kg weight
                       </div>
                       <ProgressBar style={{width: '100px'}} now={75} variant="success" />
@@ -249,7 +249,7 @@ function Dashboard() {
                     Log Food
                   </Button>
                   <Button as={Link} to="/diet" variant="info" className="mb-2">
-                    <FaTarget className="me-2" />
+                    <FaBullseye className="me-2" />
                     Plan Diet
                   </Button>
                   <Button as={Link} to="/progress" variant="warning" className="mb-2">

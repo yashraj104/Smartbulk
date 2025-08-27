@@ -11,9 +11,11 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import dietPlannerService from '../services/DietPlannerService';
 import foodDatabaseService from '../services/FoodDatabaseService';
+import FirestoreService from '../services/FirestoreService';
+import toast from 'react-hot-toast';
 
 function DietPlanner() {
-  const { userProfile } = useAuth();
+  const { currentUser, userProfile } = useAuth();
   const [formData, setFormData] = useState({
     weight: '',
     height: '',
@@ -28,6 +30,7 @@ function DietPlanner() {
   const [mealPlan, setMealPlan] = useState(null);
   const [activeTab, setActiveTab] = useState('plan');
   const [shoppingList, setShoppingList] = useState([]);
+  const [savedPlans, setSavedPlans] = useState([]);
 
   // Initialize form with user profile data if available
   useEffect(() => {
@@ -44,6 +47,23 @@ function DietPlanner() {
       }));
     }
   }, [userProfile]);
+
+  // Load saved diet plans
+  useEffect(() => {
+    const loadSavedPlans = async () => {
+      if (currentUser?.uid) {
+        try {
+          const result = await FirestoreService.getUserDietPlans(currentUser.uid);
+          if (result.success) {
+            setSavedPlans(result.data);
+          }
+        } catch (error) {
+          console.error('Error loading saved diet plans:', error);
+        }
+      }
+    };
+    loadSavedPlans();
+  }, [currentUser]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
