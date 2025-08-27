@@ -6,7 +6,7 @@ import {
 import { motion } from 'framer-motion';
 import { 
   FaUser, FaEdit, FaSave, FaTimes, FaCamera, FaWeight,
-  FaRuler, FaBirthdayCake, FaTarget, FaFire, FaHeart,
+  FaRuler, FaBirthdayCake, FaBullseye, FaFire, FaHeart,
   FaChartLine, FaTrophy, FaHistory
 } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';

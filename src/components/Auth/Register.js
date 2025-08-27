@@ -6,7 +6,7 @@ import {
 import { motion } from "framer-motion";
 import { 
   FaEye, FaEyeSlash, FaEnvelope, FaLock, FaUser, 
-  FaWeight, FaRuler, FaBirthdayCake, FaTarget,
+  FaWeight, FaRuler, FaBirthdayCake, FaBullseye,
   FaGoogle, FaFacebook, FaCheck
 } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";

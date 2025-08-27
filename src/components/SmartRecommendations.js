@@ -6,7 +6,7 @@ import {
 import { motion } from 'framer-motion';
 import { 
   FaBrain, FaDumbbell, FaAppleAlt, FaRocket, FaChartLine, FaCalendarAlt,
-  FaClock, FaFire, FaTarget, FaCheckCircle, FaDownload, FaSave,
+  FaClock, FaFire, FaBullseye, FaCheckCircle, FaDownload, FaSave,
   FaRefresh, FaLightbulb, FaHeart, FaTrophy
 } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
@@ -366,7 +366,7 @@ function SmartRecommendations() {
         {/* Workout Notes */}
         <Card className="border-0 shadow-sm">
           <Card.Header>
-            <h5 className="mb-0"><FaTarget className="me-2" />Training Notes</h5>
+            <h5 className="mb-0"><FaBullseye className="me-2" />Training Notes</h5>
           </Card.Header>
           <Card.Body>
             <ListGroup variant="flush">

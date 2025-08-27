@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 import {
   FaPlus, FaEdit, FaTrash, FaPlay, FaPause, FaStop,
   FaDumbbell, FaClock, FaFire, FaCheck, FaTimes,
-  FaSave, FaCalendar, FaTarget, FaHeart
+  FaSave, FaCalendar, FaBullseye, FaHeart
 } from "react-icons/fa";
 import { useAuth } from "../contexts/AuthContext";
 
